@@ -1,4 +1,6 @@
+/* eslint-disable implicit-arrow-linebreak */
 import mongoose from 'mongoose';
+import validator from 'validator';
 
 const userSchema = new mongoose.Schema(
   {
@@ -18,12 +20,13 @@ const userSchema = new mongoose.Schema(
       type: String,
       default:
         'https://pictures.s3.yandex.net/resources/jacques-cousteau_1604399756.png',
-      // regex
+      validate: (value) => validator.isURL(value),
     },
     email: {
       type: String,
       required: true,
       unique: true,
+      validate: (value) => validator.isEmail(value),
     },
     password: {
       type: String,

@@ -14,6 +14,7 @@ export const validateUserId = celebrate({
       }),
   }),
 });
+
 export const validateCardId = celebrate({
   params: Joi.object().keys({
     cardId: Joi.string()
@@ -31,7 +32,6 @@ export const validateBodyUpdateProfile = celebrate({
   body: Joi.object().keys({
     name: Joi.string().required().min(2).max(30),
     about: Joi.string().required().min(2).max(30),
-    _id: Joi.string().alphanum().length(24),
   }),
 });
 
@@ -40,7 +40,6 @@ export const validateAvatar = celebrate({
     avatar: Joi.string().pattern(
       /^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$/
     ),
-    _id: Joi.string().alphanum().length(24),
   }),
 });
 
