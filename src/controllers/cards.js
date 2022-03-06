@@ -14,7 +14,7 @@ const getCards = async (req, res, next) => {
       throw new NotFoundError('Пользователей не найдено');
     }
   } catch (error) {
-    next('Произошла ошибка');
+    next(error);
   }
 };
 
@@ -31,15 +31,16 @@ const createCard = async (req, res, next) => {
           'Переданы некорректные данные при создании карточки'
         )
       );
+    } else {
+      next(error);
     }
-    next(error);
   }
 };
 
 const deleteCard = async (req, res, next) => {
   try {
     const id = req.params.cardId;
-    Cards.findById(id)
+    await Cards.findById(id)
       .orFail(() => new NotFoundError('Карточка с указанным id не найдена'))
       .then((card) => {
         if (!card.owner.equals(req.user._id)) {
@@ -52,8 +53,9 @@ const deleteCard = async (req, res, next) => {
   } catch (error) {
     if (error.name === 'CastError') {
       next(new BadRequestError('Невалидный id'));
+    } else {
+      next(error);
     }
-    next(error);
   }
 };
 
@@ -72,9 +74,10 @@ const likeCard = async (req, res, next) => {
     }
   } catch (error) {
     if (error.name === 'CastError') {
-      next(new NotFoundError('Передан несуществующий _id карточки'));
+      next(new BadRequestError('Невалидный id'));
+    } else {
+      next(error);
     }
-    next(error);
   }
 };
 
@@ -92,9 +95,10 @@ const dislikeCard = async (req, res, next) => {
     }
   } catch (error) {
     if (error.name === 'CastError') {
-      next(new NotFoundError('Передан несуществующий _id карточки'));
+      next(new BadRequestError('Невалидный id'));
+    } else {
+      next(error);
     }
-    next(error);
   }
 };
 

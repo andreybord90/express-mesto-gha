@@ -1,5 +1,6 @@
 import express from 'express';
 import mongoose from 'mongoose';
+import { errors } from 'celebrate';
 import router from './src/routes/users.js';
 import routerCards from './src/routes/cards.js';
 import { createUser, login } from './src/controllers/users.js';
@@ -9,7 +10,7 @@ import {
   validateCreateUser,
   validateLogin,
 } from './src/middlewares/validatons.js';
-import { ForbiddenError } from './src/errors/index.js';
+import { NotFoundError } from './src/errors/index.js';
 
 const { PORT = 3000 } = process.env;
 const { connect } = mongoose;
@@ -26,8 +27,9 @@ app.use('/', router);
 app.use('/', routerCards);
 
 app.use((req, res, next) => {
-  next(new ForbiddenError('Страница не найдена'));
+  next(new NotFoundError('Страница не найдена'));
 });
+app.use(errors());
 app.use(errorHandler);
 
 app.listen(PORT, () => {

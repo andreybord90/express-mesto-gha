@@ -18,7 +18,7 @@ const getUsers = async (req, res, next) => {
       throw new NotFoundError('Пользователей не найдено');
     }
   } catch (error) {
-    next('Произошла ошибка');
+    next(error);
   }
 };
 
@@ -33,15 +33,16 @@ const getUserById = async (req, res, next) => {
   } catch (error) {
     if (error.name === 'ValidationError') {
       next(new BadRequestError('Невалидный id'));
+    } else {
+      next(error);
     }
-    next(error);
   }
 };
 
 const createUser = async (req, res, next) => {
   try {
     const { name, about, avatar, password, email } = req.body;
-    User.findOne({ email })
+    await User.findOne({ email })
       .then((user) => {
         if (user) {
           throw new ConflictError('Пользователь с данным email существует');
@@ -49,11 +50,13 @@ const createUser = async (req, res, next) => {
           return bcrypt.hash(password, 10);
         }
       })
+      // eslint-disable-next-line arrow-body-style
       .then((hash) => {
-        User.create({ name, about, avatar, password: hash, email });
+        return User.create({ name, about, avatar, password: hash, email });
       })
       .then((user) => {
         res.send(user);
+        // res.status(200).send({ data: {name, about, avatar, email} })
       });
   } catch (error) {
     if (error.name === 'ValidationError') {
@@ -62,14 +65,16 @@ const createUser = async (req, res, next) => {
           'Переданы некорректные данные при создании пользователя'
         )
       );
+    } else {
+      next(error);
     }
-    next(error);
   }
 };
 
 const updateProfile = async (req, res, next) => {
   try {
-    const { name, about, _id } = req.body;
+    const { _id } = req.user;
+    const { name, about } = req.body;
     const user = await User.findByIdAndUpdate(
       _id,
       { name, about },
@@ -87,18 +92,18 @@ const updateProfile = async (req, res, next) => {
           'Переданы некорректные данные при создании пользователя'
         )
       );
-    }
-    if (error.name === 'CastError') {
+    } else if (error.name === 'CastError') {
       next(new NotFoundError('Пользователь с указанным _id не найден'));
+    } else {
+      next(error);
     }
-    next(error);
   }
 };
 
 const updateAvatar = async (req, res, next) => {
   try {
-    // const id = req.user._id;
-    const { avatar, _id } = req.body;
+    const { _id } = req.user;
+    const { avatar } = req.body;
     const user = await User.findByIdAndUpdate(
       _id,
       { avatar },
@@ -111,14 +116,16 @@ const updateAvatar = async (req, res, next) => {
     }
   } catch (error) {
     if (error.name === 'ValidationError') {
-      throw new BadRequestError(
-        'Переданы некорректные данные при обновлении аватара'
+      next(
+        new BadRequestError(
+          'Переданы некорректные данные при обновлении аватара'
+        )
       );
-    }
-    if (error.name === 'CastError') {
+    } else if (error.name === 'CastError') {
       next(new NotFoundError('Пользователь с указанным _id не найден'));
+    } else {
+      next(error);
     }
-    next(error);
   }
 };
 
@@ -129,26 +136,27 @@ const login = async (req, res, next) => {
     const user = await User.findOne({ email }).select('+password');
 
     if (!user) {
-      throw new BadRequestError('Неправильные почта или пароль');
+      throw new UnauthorizedError('Неправильные почта или пароль');
     }
 
-    const compare = bcrypt.compare(password, user.password);
+    const compare = await bcrypt.compare(password, user.password);
 
     if (!compare) {
-      throw new BadRequestError('Неправильные почта или пароль');
+      throw new UnauthorizedError('Неправильные почта или пароль');
     }
 
-    const token = generateToken({ payload: user._id });
+    const token = generateToken({ _id: user._id });
 
     res.send({ token });
   } catch (error) {
-    next(new UnauthorizedError('Ошибка авторизации'));
+    next(new UnauthorizedError('Неправильные почта или пароль'));
   }
 };
 
 const getUserInfo = async (res, req, next) => {
   try {
-    const user = await User.findById(req.params.userId);
+    const user = await User.findById(req.user._id);
+    console.log('data', req.user);
     if (user) {
       res.status(200).send(user);
     } else {
@@ -157,8 +165,9 @@ const getUserInfo = async (res, req, next) => {
   } catch (error) {
     if (error.name === 'CastError') {
       next(new BadRequestError('Невалидный id'));
+    } else {
+      next(new UnauthorizedError('Произошла ошибка'));
     }
-    next(new UnauthorizedError('Произошла ошибка'));
   }
 };
 

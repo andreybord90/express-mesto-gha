@@ -16,7 +16,7 @@ import {
 const router = express.Router();
 
 router.get('/users', getUsers);
-router.get('/users/me', validateUserId, getUserInfo);
+router.get('/users/me', getUserInfo);
 router.get('/users/:userId', validateUserId, getUserById);
 router.patch('/users/me', validateBodyUpdateProfile, updateProfile);
 router.patch('/users/me/avatar', validateAvatar, updateAvatar);
