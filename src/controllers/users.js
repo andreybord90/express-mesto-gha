@@ -54,9 +54,8 @@ const createUser = async (req, res, next) => {
       .then((hash) => {
         return User.create({ name, about, avatar, password: hash, email });
       })
-      .then((user) => {
-        res.send(user);
-        // res.status(200).send({ data: {name, about, avatar, email} })
+      .then(() => {
+        res.status(200).send({ data: { name, about, avatar, email } });
       });
   } catch (error) {
     if (error.name === 'ValidationError') {
@@ -153,7 +152,7 @@ const login = async (req, res, next) => {
   }
 };
 
-const getUserInfo = async (res, req, next) => {
+const getUserInfo = async (req, res, next) => {
   try {
     const user = await User.findById(req.user._id);
     console.log('data', req.user);
@@ -166,7 +165,7 @@ const getUserInfo = async (res, req, next) => {
     if (error.name === 'CastError') {
       next(new BadRequestError('Невалидный id'));
     } else {
-      next(new UnauthorizedError('Произошла ошибка'));
+      next(new UnauthorizedError(error));
     }
   }
 };
