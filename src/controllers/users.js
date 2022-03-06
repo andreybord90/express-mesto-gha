@@ -155,7 +155,6 @@ const login = async (req, res, next) => {
 const getUserInfo = async (req, res, next) => {
   try {
     const user = await User.findById(req.user._id);
-    console.log('data', req.user);
     if (user) {
       res.status(200).send(user);
     } else {
@@ -165,7 +164,7 @@ const getUserInfo = async (req, res, next) => {
     if (error.name === 'CastError') {
       next(new BadRequestError('Невалидный id'));
     } else {
-      next(new UnauthorizedError(error));
+      next(error);
     }
   }
 };
