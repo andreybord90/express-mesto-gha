@@ -1,15 +1,24 @@
 import Cards from '../models/card.js';
+import {
+  NotFoundError,
+  BadRequestError,
+  ForbiddenError,
+} from '../errors/index.js';
 
-const ERROR_CODE = 400;
-const ERROR_NOT_FOUND = 404;
-
-const getCards = (req, res) => {
-  Cards.find({})
-    .then((cards) => res.send({ data: cards }))
-    .catch((err) => res.status(500).send({ message: err.message }));
+const getCards = async (req, res, next) => {
+  try {
+    const cards = await Cards.find({});
+    if (cards) {
+      res.status(200).send({ data: cards });
+    } else {
+      throw new NotFoundError('Пользователей не найдено');
+    }
+  } catch (error) {
+    next('Произошла ошибка');
+  }
 };
 
-const createCard = async (req, res) => {
+const createCard = async (req, res, next) => {
   try {
     const { name, link } = req.body;
     const userId = req.user._id;
@@ -17,37 +26,38 @@ const createCard = async (req, res) => {
     res.send(card);
   } catch (error) {
     if (error.name === 'ValidationError') {
-      res.status(ERROR_CODE).send({
-        message: 'Переданы некорректные данные при создании пользователя',
-      });
-      return;
+      next(
+        new BadRequestError(
+          'Переданы некорректные данные при создании карточки'
+        )
+      );
     }
-    res.status(500).send({ message: error.message });
+    next(error);
   }
 };
 
-const deleteCard = async (req, res) => {
+const deleteCard = async (req, res, next) => {
   try {
     const id = req.params.cardId;
-    const card = await Cards.findByIdAndRemove(id);
-    if (card) {
-      res.status(200).send(card);
-    } else {
-      res
-        .status(ERROR_NOT_FOUND)
-        .send({ message: 'Карточка с указанным id не найдена.' });
-      return;
-    }
+    Cards.findById(id)
+      .orFail(() => new NotFoundError('Карточка с указанным id не найдена'))
+      .then((card) => {
+        if (!card.owner.equals(req.user._id)) {
+          return next(new ForbiddenError('Нельзя удалить чужую карточку'));
+        }
+        return card.remove().then(() => {
+          res.send({ message: 'Карточка удалена' });
+        });
+      });
   } catch (error) {
     if (error.name === 'CastError') {
-      res.status(ERROR_CODE).send({ message: 'Невалидный id ' });
-      return;
+      next(new BadRequestError('Невалидный id'));
     }
-    res.status(500).send({ message: error.message });
+    next(error);
   }
 };
 
-const likeCard = async (req, res) => {
+const likeCard = async (req, res, next) => {
   try {
     const card = await Cards.findByIdAndUpdate(
       req.params.cardId,
@@ -58,23 +68,17 @@ const likeCard = async (req, res) => {
     if (card) {
       res.status(200).send(card);
     } else {
-      res
-        .status(ERROR_NOT_FOUND)
-        .send({ message: 'Карточка с указанным id не найдена.' });
-      return;
+      throw new NotFoundError('Карточка с указанным id не найдена');
     }
   } catch (error) {
     if (error.name === 'CastError') {
-      res.status(ERROR_CODE).send({
-        message: 'Передан несуществующий _id карточки',
-      });
-      return;
+      next(new NotFoundError('Передан несуществующий _id карточки'));
     }
-    res.status(500).send({ message: error.message });
+    next(error);
   }
 };
 
-const dislikeCard = async (req, res) => {
+const dislikeCard = async (req, res, next) => {
   try {
     const card = await Cards.findByIdAndUpdate(
       req.params.cardId,
@@ -84,19 +88,13 @@ const dislikeCard = async (req, res) => {
     if (card) {
       res.status(200).send(card);
     } else {
-      res
-        .status(ERROR_NOT_FOUND)
-        .send({ message: 'Карточка с указанным id не найдена.' });
-      return;
+      throw new NotFoundError('Карточка с указанным id не найдена');
     }
   } catch (error) {
     if (error.name === 'CastError') {
-      res.status(ERROR_CODE).send({
-        message: 'Передан несуществующий _id карточки',
-      });
-      return;
+      next(new NotFoundError('Передан несуществующий _id карточки'));
     }
-    res.status(500).send({ message: error.message });
+    next(error);
   }
 };
 
